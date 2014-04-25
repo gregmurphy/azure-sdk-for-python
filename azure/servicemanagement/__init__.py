@@ -33,7 +33,7 @@ AZURE_MANAGEMENT_CERTFILE = 'AZURE_MANAGEMENT_CERTFILE'
 AZURE_MANAGEMENT_SUBSCRIPTIONID = 'AZURE_MANAGEMENT_SUBSCRIPTIONID'
 
 # x-ms-version for service management.
-X_MS_VERSION = '2012-03-01'
+X_MS_VERSION = '2013-11-01'
 
 #-----------------------------------------------------------------------------
 # Data classes
@@ -449,6 +449,13 @@ class AvailabilityResponse(WindowsAzureData):
 
     def __init__(self):
         self.result = False
+        self.reason = u''
+
+class AddressAvailabilityResponse(WindowsAzureData):
+
+    def __init__(self):
+        self.is_available = False
+        self.available_addresses = _scalar_list_of(str, 'AvailableAddress')
 
 
 class SubscriptionCertificates(WindowsAzureData):
@@ -579,6 +586,7 @@ class ConfigurationSet(WindowsAzureData):
         self.role_type = u''
         self.input_endpoints = ConfigurationSetInputEndpoints()
         self.subnet_names = _scalar_list_of(str, 'SubnetName')
+        self.static_virtual_network_ip_address = u''
 
 
 class ConfigurationSetInputEndpoints(WindowsAzureData):
@@ -629,6 +637,31 @@ class ConfigurationSetInputEndpoint(WindowsAzureData):
         self.port = port
         self.load_balancer_probe = LoadBalancerProbe()
         self.protocol = protocol
+        self.endpoint_acl = Rules()
+
+
+class Rules(WindowsAzureData):
+
+    def __init__(self):
+        self.rules = _list_of(Rule)
+
+    def __iter__(self):
+        return iter(self.rules)
+
+    def __len__(self):
+        return len(self.rules)
+
+    def __getitem__(self, index):
+        return self.rules[index]
+
+
+class Rule(WindowsAzureData):
+
+    def __init__(self):
+        self.order = u''
+        self.action = u''
+        self.remote_subnet = u''
+        self.description = u''
 
 
 class WindowsConfigurationSet(WindowsAzureData):
@@ -835,6 +868,189 @@ class ServiceBusNamespace(WindowsAzureData):
         self.connection_string = u''
         self.subscription_id = u''
         self.enabled = False
+
+
+class Profiles(WindowsAzureData):
+    
+    def __init__(self):
+        self.profiles = _list_of(Profile)
+
+    def __iter__(self):
+        return iter(self.profiles)
+
+    def __len__(self):
+        return len(self.profiles)
+
+    def __getitem__(self, index):
+        return self.profiles[index]
+
+
+class Profile(WindowsAzureData):
+
+    def __init__(self):
+        self.domain_name = u''
+        self.name = u''
+        self.status = u''
+        self.status_details = _scalar_list_of(str, 'EnabledVersion')
+        self.definitions = Definitions()
+
+class Definitions(WindowsAzureData):
+
+    def __init__(self):
+        self.definitions = _list_of(Definition)
+
+    def __iter__(self):
+        return iter(self.definitions)
+
+    def __len__(self):
+        return len(self.definitions)
+
+    def __getitem__(self, index):
+        return self.definitions[index]
+
+class Definition(WindowsAzureData):
+
+    def __init__(self):
+        self.status = u''
+        self.version = u''
+        self.monitors = Monitors()
+        self.policy = Policy()
+
+class Monitors(WindowsAzureData):
+
+    def __init__(self):
+        self.monitors = _list_of(Monitor)
+
+    def __iter__(self):
+        return iter(self.monitors)
+
+    def __len__(self):
+        return len(self.monitors)
+
+    def __getitem__(self, index):
+        return self.monitors[index]
+
+
+class Monitor(WindowsAzureData):
+
+    def __init__(self):
+        self.interval_in_seconds = u''
+        self.timeout_in_seconds = u''
+        self.tolerated_number_of_failures = u''
+        self.protocol = u''
+        self.port = u''
+        self.http_options = HttpOptions()
+
+class HttpOptions(WindowsAzureData):
+
+    def __init__(self):
+        self.verb = u''
+        self.relative_path = u''
+        self.expected_status_code = u''
+
+class Policy(WindowsAzureData):
+
+    def __init__(self):
+        self.load_balancing_method = u''
+        self.endpoints = Endpoints()
+        self.monitor_status = u''
+
+class Endpoints(WindowsAzureData):
+
+    def __init__(self):
+        self.endpoints = _list_of(Endpoint)
+
+    def __iter__(self):
+        return iter(self.endpoints)
+
+    def __len__(self):
+        return len(self.endpoints)
+
+    def __getitem__(self, index):
+        return self.endpoints[index]
+
+class Endpoint(WindowsAzureData):
+
+    def __init__(self):
+        self.domain_name = u''
+        self.status = u''
+        self.type = u''
+        self.monitor_status = u''
+
+class NetworkConfiguration(WindowsAzureData):
+
+    def __init__(self):
+        self.network_configuration = VirtualNetworkConfiguration()
+
+
+class VirtualNetworkConfiguration(WindowsAzureData):
+
+    def __init__(self):
+        self.dns = False
+
+
+class VirtualNetworkSites(WindowsAzureData):
+    
+    def __init__(self):
+        self.virtual_network_sites = _list_of(VirtualNetworkSite)
+
+    def __iter__(self):
+        return iter(self.virtual_network_sites)
+
+    def __len__(self):
+        return len(self.virtual_network_sites)
+
+    def __getitem__(self, index):
+        return self.virtual_network_sites[index]
+
+
+class VirtualNetworkSite(WindowsAzureData):
+
+    def __init__(self):
+        self.name = u''
+        self.label = u''
+        self.id = u''
+        self.affinity_group = u''
+        self.state = u''
+        self.address_space = AddressPrefixes()
+        self.subnets = Subnets()
+
+
+class Subnet(WindowsAzureData):
+
+    def __init__(self):
+        self.name = u''
+        self.address_prefix = u''
+
+
+class Subnets(WindowsAzureData):
+
+    def __init__(self):
+        self.subnets = _list_of(Subnet)
+
+    def __iter__(self):
+        return iter(self.subnets)
+
+    def __len__(self):
+        return len(self.subnets)
+
+    def __getitem__(self, index):
+        return self.subnets[index]
+
+
+class AddressPrefixes(WindowsAzureData):
+
+    def __init__(self):
+        self.address_prefixes = _scalar_list_of(str, 'AddressPrefix')
+
+    def __iter__(self):
+        return iter(self.address_prefixes)
+
+    def __len__(self):
+        return len(self.address_prefixes)
+
+    def __getitem__(self, index):
+        return self.address_prefixes[index]
 
 
 def _update_management_header(request):
@@ -1072,10 +1288,11 @@ class _XmlSerializer(object):
             '<OperationType>RestartRoleOperation</OperationType>')
 
     @staticmethod
-    def shutdown_role_operation_to_xml():
-        return _XmlSerializer.doc_from_xml(
+    def shutdown_role_operation_to_xml(post_action):
+        return _XmlSerializer.doc_from_data(
             'ShutdownRoleOperation',
-            '<OperationType>ShutdownRoleOperation</OperationType>')
+            [('OperationType', 'ShutdownRoleOperation'),
+             ('PostShutdownAction', post_action)])
 
     @staticmethod
     def start_role_operation_to_xml():
@@ -1190,6 +1407,10 @@ class _XmlSerializer(object):
         for name in configuration.subnet_names:
             xml += _XmlSerializer.data_to_xml([('SubnetName', name)])
         xml += '</SubnetNames>'
+	if configuration.static_virtual_network_ip_address:
+            xml += '<StaticVirtualNetworkIPAddress>'
+            xml += configuration.static_virtual_network_ip_address
+            xml += '</StaticVirtualNetworkIPAddress>'
         return xml
 
     @staticmethod
@@ -1337,6 +1558,20 @@ class _XmlSerializer(object):
                 [('VirtualNetworkName', virtual_network_name)])
 
         return _XmlSerializer.doc_from_xml('Deployment', xml)
+
+    @staticmethod
+    def create_tm_profile_to_xml(profile_name, domain_name):
+        return _XmlSerializer.doc_from_data('Profile',
+                                            [('DomainName', domain_name),
+                                             ('Name', profile_name)])
+
+    @staticmethod
+    def update_tm_profile_to_xml(profile_name, status):
+        return _XmlSerializer.doc_from_data('Profile',
+                                            [('Status', status),
+                                             ('StatusDetails',
+                                              _XmlSerializer.data_to_xml([('EnabledVersion', '1')])
+                                             )])
 
     @staticmethod
     def data_to_xml(data):

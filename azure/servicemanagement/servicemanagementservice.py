@@ -19,17 +19,22 @@ from azure import (
     _validate_not_none,
     )
 from azure.servicemanagement import (
+    AddressAvailabilityResponse,
     AffinityGroups,
     AffinityGroup,
     AvailabilityResponse,
     Certificate,
     Certificates,
     DataVirtualHardDisk,
+    Definition,
+    Definitions,
     Deployment,
     Disk,
     Disks,
     Locations,
     Operation,
+    Profile,
+    Profiles,
     HostedService,
     HostedServices,
     Images,
@@ -42,6 +47,7 @@ from azure.servicemanagement import (
     Subscription,
     SubscriptionCertificate,
     SubscriptionCertificates,
+    VirtualNetworkSites,
     _XmlSerializer,
     )
 from azure.servicemanagement.servicemanagementclient import (
@@ -952,6 +958,143 @@ class ServiceManagementService(_ServiceManagementClient):
             '/' + self.subscription_id + '/operations/' + _str(request_id),
             Operation)
 
+    #--Operations for traffic manager ------------------------------------
+    def create_tm_definition(self, profile_name, definition):
+        '''
+        Creates a new or updates an existing Traffic Manager definition for a specified profile.
+
+        profile_name:
+            The name of the Traffic Manager profile.
+        definition:
+            A Definition object with the payload necessary to create the definition.
+        '''
+        _validate_not_none('profile_name', profile_name)
+        _validate_not_none('definition', definition)
+        if not isinstance(definition, Definition):
+            raise WindowsAzureError('definition must be an object of type Definition')
+#        return self._perform_post('/' + self.subscription_id + '/services/WATM/profiles',
+#                                  _XmlSerializer.create_tm_definition_to_xml(profile_name, definition),
+#                                  async=True)
+        return _XmlSerializer.create_tm_definition_to_xml(profile_name, definition)
+
+    def create_tm_profile(self, profile_name, domain_name):
+        '''
+        Creates a new Traffic Manager profile for a domain name.
+
+        profile_name:
+            The name generally conforms to domain name rules as specified in RFC 1123.
+            The maximum length of the profile name is 256 characters.
+        domain_name:
+            Specifies the name of the domain that the profile is being created for.
+            A valid DNS name of the form <subdomain name>.trafficmanager.net, conforming
+            to RFC 1123 specification.
+            Total length of the domain name must be less than or equal to 253 characters.
+            The <subdomain name> can contain periods and each label within the subdomain
+            must be less or equal to 63 characters.
+        '''
+        _validate_not_none('profile_name', profile_name)
+        _validate_not_none('domain_name', domain_name)
+        if not domain_name.endswith('.trafficmanager.net') or domain_name.count('.') != 2:
+            raise WindowsAzureError('domain name must be in the format domain.trafficmanager.net')
+        return self._perform_post('/' + self.subscription_id + '/services/WATM/profiles',
+                                  _XmlSerializer.create_tm_profile_to_xml(profile_name, domain_name),
+                                  async=True)
+        
+    def delete_tm_profile(self, profile_name):
+        '''
+        Deletes a Traffic Manager profile and all its definitions.
+
+        profile_name:
+            The name of the Traffic Manager profile.
+        '''
+        _validate_not_none('profile_name', profile_name)
+        return self._perform_delete('/' + self.subscription_id + '/services/WATM/profiles/' + _str(profile_name))
+
+    def get_tm_definition(self, profile_name):
+        '''
+        Returns an existing profile definition.
+
+        profile_name: The name of the Traffic Manager profile.
+        '''
+        _validate_not_none('profile_name', profile_name)
+        return self._perform_get('/' + self.subscription_id + '/services/WATM/profiles/' + _str(profile_name) + '/definitions/1',
+                                 Definition)
+
+    def get_tm_profile(self, profile_name):
+        '''
+        Lists all Traffic Manager profiles owned by a subscription.
+
+        profile_name: The name of the Traffic Manager profile.
+        '''
+        _validate_not_none('profile_name', profile_name)
+        return self._perform_get('/' + self.subscription_id + '/services/WATM/profiles/' + _str(profile_name),
+                                 Profile)
+        
+    def list_tm_definitions(self, profile_name):
+        '''
+        Returns all definitions of a profile.
+
+        profile_name: The name of the Traffic Manager profile.
+        '''
+        _validate_not_none('profile_name', profile_name)
+        return self._perform_get('/' + self.subscription_id + '/services/WATM/profiles/' + _str(profile_name) + '/definitions',
+                                 Definitions)
+
+    def list_tm_profiles(self):
+        '''
+        Lists all Traffic Manager profiles owned by a subscription.
+        '''
+        return self._perform_get('/' + self.subscription_id + '/services/WATM/profiles',
+                                 Profiles)
+
+    def update_tm_profile(self, profile_name, status):
+        '''
+        Enables or disables a Traffic Manager profile.
+
+        profile_name: The name of the Traffic Manager profile.
+        status: Desired updated status for the profile - Enabled or Disabled
+        '''
+        _validate_not_none('profile_name', profile_name)
+        _validate_not_none('status', status)
+        if status != 'Enabled' and status != 'Disabled':
+            raise WindowsAzureError('status must be Enabled or Disabled')
+        return self._perform_post('/' + self.subscription_id + '/services/WATM/profiles',
+                                  _XmlSerializer.update_tm_profile_to_xml(profile_name, status),
+                                  async=True)
+
+    def check_dns_prefix_availability(self, domain_name):
+        '''
+        Checks to see if the specified DNS prefix is available for creating a
+        profile.
+
+        domain_name: DNS prefix - must end with '.trafficmanager.net'.
+        '''
+        _validate_not_none('domain_name', domain_name)
+        if not domain_name.endswith('.trafficmanager.net') or domain_name.count('.') != 2:
+            raise WindowsAzureError('domain name must be in the format domain.trafficmanager.net')
+        return self._perform_get('/' + self.subscription_id + '/services/WATM/operations/isavailable/' + _str(domain_name),
+                                 AvailabilityResponse)
+
+    #--Operations on virtual networks ------------------------------------
+    def list_virtual_network_sites(self):
+        '''
+        Lists the virtual networks configured for the subscription
+        '''
+        return self._perform_get('/' + self.subscription_id + '/services/networking/virtualnetwork', VirtualNetworkSites)
+    
+    
+    def check_virtual_network_ip_address_availability(self, virtual_network_name, ip_address):
+        '''
+        Checks for the availability of an IP address in the specified Virtual
+        Network.
+
+        virtual_network_name: Name of the virtual network.
+        ip_address: Address to check for availability
+        '''
+        _validate_not_none('virtual_network_name', virtual_network_name)
+        return self._perform_get('/' + self.subscription_id + '/services/networking/' + _str(virtual_network_name) + '?op=checkavailability&address=' + _str(ip_address),
+                                 AddressAvailabilityResponse)
+                
     #--Operations for retrieving operating system information ------------
     def list_operating_systems(self):
         '''
@@ -1059,7 +1202,7 @@ class ServiceManagementService(_ServiceManagementClient):
         _validate_not_none('deployment_slot', deployment_slot)
         _validate_not_none('label', label)
         _validate_not_none('role_name', role_name)
-        _validate_not_none('system_config', system_config)
+        #_validate_not_none('system_config', system_config)
         _validate_not_none('os_virtual_hard_disk', os_virtual_hard_disk)
         return self._perform_post(
             self._get_deployment_path_using_name(service_name),
@@ -1123,7 +1266,7 @@ class ServiceManagementService(_ServiceManagementClient):
         _validate_not_none('service_name', service_name)
         _validate_not_none('deployment_name', deployment_name)
         _validate_not_none('role_name', role_name)
-        _validate_not_none('system_config', system_config)
+        #_validate_not_none('system_config', system_config)
         _validate_not_none('os_virtual_hard_disk', os_virtual_hard_disk)
         return self._perform_post(
             self._get_role_path(service_name, deployment_name),
@@ -1278,13 +1421,16 @@ class ServiceManagementService(_ServiceManagementClient):
             ),
             async=True)
 
-    def shutdown_role(self, service_name, deployment_name, role_name):
+    def shutdown_role(self, service_name, deployment_name, role_name, post_action='Stopped'):
         '''
         Shuts down the specified virtual machine.
 
         service_name: The name of the service.
         deployment_name: The name of the deployment.
         role_name: The name of the role.
+        post_action:
+            Specifies the action after shutdown completes. Possible 
+            values are: Stopped, StoppedDeallocate.
         '''
         _validate_not_none('service_name', service_name)
         _validate_not_none('deployment_name', deployment_name)
@@ -1292,8 +1438,7 @@ class ServiceManagementService(_ServiceManagementClient):
         return self._perform_post(
             self._get_role_instance_operations_path(
                 service_name, deployment_name, role_name),
-            _XmlSerializer.shutdown_role_operation_to_xml(
-            ),
+            _XmlSerializer.shutdown_role_operation_to_xml(post_action),
             async=True)
 
     #--Operations for virtual machine images -----------------------------

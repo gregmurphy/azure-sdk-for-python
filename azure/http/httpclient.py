@@ -23,6 +23,7 @@ if sys.version_info < (3,):
         HTTP_PORT,
         HTTPS_PORT,
         )
+    from urlparse import urlparse
 else:
     from http.client import (
         HTTPSConnection,
@@ -30,9 +31,10 @@ else:
         HTTP_PORT,
         HTTPS_PORT,
         )
+    from urllib.parse import urlparse
 
 from azure.http import HTTPError, HTTPResponse
-from azure import _USER_AGENT_STRING
+from azure import _USER_AGENT_STRING, _update_request_uri_query
 
 
 class _HTTPClient(object):
@@ -204,7 +206,16 @@ class _HTTPClient(object):
 
             response = HTTPResponse(
                 int(resp.status), resp.reason, headers, respbody)
-            if self.status >= 300:
+            if self.status == 307:
+                print 'Handling redirect'
+                new_url = urlparse(dict(headers)['location'])
+                request.host = new_url.hostname
+                request.path = new_url.path
+                if new_url.query:
+                    request.path += '?' + new_url.query
+                request.path, request.query = _update_request_uri_query(request)
+                return self.perform_request(request)
+            elif self.status >= 300:
                 raise HTTPError(self.status, self.message,
                                 self.respheader, respbody)
 
