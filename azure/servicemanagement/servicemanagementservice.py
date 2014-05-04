@@ -975,7 +975,7 @@ class ServiceManagementService(_ServiceManagementClient):
 #        return self._perform_post('/' + self.subscription_id + '/services/WATM/profiles',
 #                                  _XmlSerializer.create_tm_definition_to_xml(profile_name, definition),
 #                                  async=True)
-        return _XmlSerializer.create_tm_definition_to_xml(profile_name, definition)
+        print _XmlSerializer.create_tm_definition_to_xml(definition)
 
     def create_tm_profile(self, profile_name, domain_name):
         '''
@@ -1403,6 +1403,23 @@ class ServiceManagementService(_ServiceManagementClient):
             _XmlSerializer.start_role_operation_to_xml(),
             async=True)
 
+    def start_roles(self, service_name, deployment_name, role_names):
+        '''
+        Starts multiple virtual machines.
+
+        service_name: The name of the service.
+        deployment_name: The name of the deployment.
+        role_names: List of names of the roles.
+        '''
+        _validate_not_none('service_name', service_name)
+        _validate_not_none('deployment_name', deployment_name)
+        _validate_not_none('role_names', role_names)
+        return self._perform_post(
+            self._get_roles_operations_path(
+                service_name, deployment_name),
+            _XmlSerializer.start_roles_operation_to_xml(role_names),
+            async=True)
+
     def restart_role(self, service_name, deployment_name, role_name):
         '''
         Restarts the specified virtual machine.
@@ -1439,6 +1456,26 @@ class ServiceManagementService(_ServiceManagementClient):
             self._get_role_instance_operations_path(
                 service_name, deployment_name, role_name),
             _XmlSerializer.shutdown_role_operation_to_xml(post_action),
+            async=True)
+
+    def shutdown_roles(self, service_name, deployment_name, role_names, post_action='Stopped'):
+        '''
+        Shuts down multiple virtual machines.
+
+        service_name: The name of the service.
+        deployment_name: The name of the deployment.
+        role_name: List of names of the roles.
+        post_action:
+            Specifies the action after shutdown completes. Possible 
+            values are: Stopped, StoppedDeallocate.
+        '''
+        _validate_not_none('service_name', service_name)
+        _validate_not_none('deployment_name', deployment_name)
+        _validate_not_none('role_names', role_names)
+        return self._perform_post(
+            self._get_roles_operations_path(
+                service_name, deployment_name),
+            _XmlSerializer.shutdown_roles_operation_to_xml(role_names, post_action),
             async=True)
 
     #--Operations for virtual machine images -----------------------------
@@ -1804,6 +1841,10 @@ class ServiceManagementService(_ServiceManagementClient):
         return self._get_path('services/hostedservices/' + _str(service_name) +
                               '/deployments/' + deployment_name +
                               '/roleinstances', role_name) + '/Operations'
+
+    def _get_roles_operations_path(self, service_name, deployment_name):
+        return self._get_path('services/hostedservices/' + _str(service_name) +
+                              '/deployments', deployment_name) + '/roles/Operations'
 
     def _get_data_disk_path(self, service_name, deployment_name, role_name,
                             lun=None):

@@ -179,6 +179,8 @@ class _HTTPClient(object):
         ''' Sends request to cloud service server and return the response. '''
         connection = self.get_connection(request)
         try:
+            print request.path
+            print request.body
             connection.putrequest(request.method, request.path)
 
             if not self.use_httplib:
@@ -207,17 +209,25 @@ class _HTTPClient(object):
             response = HTTPResponse(
                 int(resp.status), resp.reason, headers, respbody)
             if self.status == 307:
-                print 'Handling redirect'
+                old_url = urlparse(request.path)
+                print 'Handling redirect:'
+		print 'Old host {}'.format(request.host)
+                print 'Old URL {} - {}'.format(request.path, request.query)
                 new_url = urlparse(dict(headers)['location'])
                 request.host = new_url.hostname
                 request.path = new_url.path
-                if new_url.query:
-                    request.path += '?' + new_url.query
                 request.path, request.query = _update_request_uri_query(request)
+		print 'New host {}'.format(request.host)
+                print 'New URL {} - {}'.format(request.path, request.query)
                 return self.perform_request(request)
             elif self.status >= 300:
                 raise HTTPError(self.status, self.message,
                                 self.respheader, respbody)
+
+            if response.body and 'StaticVirtualNetworkIPAddress' in response.body:
+                response.body = response.body.replace('StaticVirtualNetworkIPAddress','StaticVirtualNetworkIpAddress')
+
+            print response.body
 
             return response
         finally:

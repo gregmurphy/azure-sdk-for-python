@@ -33,7 +33,7 @@ AZURE_MANAGEMENT_CERTFILE = 'AZURE_MANAGEMENT_CERTFILE'
 AZURE_MANAGEMENT_SUBSCRIPTIONID = 'AZURE_MANAGEMENT_SUBSCRIPTIONID'
 
 # x-ms-version for service management.
-X_MS_VERSION = '2013-11-01'
+X_MS_VERSION = '2014-04-01'
 
 #-----------------------------------------------------------------------------
 # Data classes
@@ -123,6 +123,7 @@ class AffinityGroup(WindowsAzureData):
         self.hosted_services = HostedServices()
         self.storage_services = StorageServices()
         self.capabilities = _scalar_list_of(str, 'Capability')
+        self.created_time = u''
 
 
 class AffinityGroups(WindowsAzureData):
@@ -637,7 +638,12 @@ class ConfigurationSetInputEndpoint(WindowsAzureData):
         self.port = port
         self.load_balancer_probe = LoadBalancerProbe()
         self.protocol = protocol
-        self.endpoint_acl = Rules()
+        self.endpoint_acl = EndpointAcl()
+
+class EndpointAcl(WindowsAzureData):
+
+    def __init__(self):
+        self.rules = Rules()
 
 
 class Rules(WindowsAzureData):
@@ -908,13 +914,22 @@ class Definitions(WindowsAzureData):
     def __getitem__(self, index):
         return self.definitions[index]
 
+
 class Definition(WindowsAzureData):
 
     def __init__(self):
+        self.dns_options = DnsOptions()
         self.status = u''
         self.version = u''
         self.monitors = Monitors()
         self.policy = Policy()
+
+
+class DnsOptions(WindowsAzureData):
+
+    def __init__(self):
+        self.time_to_live_in_seconds = u''
+
 
 class Monitors(WindowsAzureData):
 
@@ -1295,10 +1310,31 @@ class _XmlSerializer(object):
              ('PostShutdownAction', post_action)])
 
     @staticmethod
+    def shutdown_roles_operation_to_xml(role_names, post_action):
+        xml = ''
+        for role_name in role_names:
+            xml += '<Name>' + role_name + '</Name>'
+        return _XmlSerializer.doc_from_data(
+            'ShutdownRolesOperation',
+            [('OperationType', 'ShutdownRolesOperation'),
+            ('Roles', xml),
+             ('PostShutdownAction', post_action)])
+
+    @staticmethod
     def start_role_operation_to_xml():
         return _XmlSerializer.doc_from_xml(
             'StartRoleOperation',
             '<OperationType>StartRoleOperation</OperationType>')
+
+    @staticmethod
+    def start_roles_operation_to_xml(role_names):
+        xml = ''
+        for role_name in role_names:
+            xml += '<Name>' + role_name + '</Name>'
+        return _XmlSerializer.doc_from_data(
+            'StartRolesOperation',
+            [('OperationType', 'StartRolesOperation'),
+            ('Roles', xml)])
 
     @staticmethod
     def windows_configuration_to_xml(configuration):
@@ -1401,6 +1437,17 @@ class _XmlSerializer(object):
                   endpoint.enable_direct_server_return,
                   _lower)])
 
+            if endpoint.endpoint_acl and endpoint.endpoint_acl.rules:
+                xml += '<EndpointACL><Rules>'
+		for rule in endpoint.endpoint_acl.rules:
+                    xml += '<Rule>'
+                    xml += _XmlSerializer.data_to_xml(
+                        [('Order', rule.order),
+                         ('Action', rule.action),
+                         ('RemoteSubnet', rule.remote_subnet),
+                         ('Description', rule.description)])
+                    xml += '</Rule>'
+                xml += '</Rules></EndpointACL>'
             xml += '</InputEndpoint>'
         xml += '</InputEndpoints>'
         xml += '<SubnetNames>'
@@ -1557,6 +1604,13 @@ class _XmlSerializer(object):
             xml += _XmlSerializer.data_to_xml(
                 [('VirtualNetworkName', virtual_network_name)])
 
+        return _XmlSerializer.doc_from_xml('Deployment', xml)
+
+    @staticmethod
+    def create_tm_definition_to_xml(definition):
+#        return _XmlSerializer.doc_from_data('Definition',
+#                                            [('DomainName', definition),
+#                                             ('Name', definition)])
         return _XmlSerializer.doc_from_xml('Deployment', xml)
 
     @staticmethod
