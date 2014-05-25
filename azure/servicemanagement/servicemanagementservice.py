@@ -1478,6 +1478,23 @@ class ServiceManagementService(_ServiceManagementClient):
             _XmlSerializer.shutdown_roles_operation_to_xml(role_names, post_action),
             async=True)
 
+    def add_load_balancer(self, service_name, deployment_name, subnet_name=None, ip_address=None):
+        '''
+        Adds an internal load balancer to an existing deployment.
+
+        service_name: The name of the service.
+        deployment_name: The name of the deployment.
+        subnet_name: Subnet name the deployment is in - required if in a VNET or using a static IP.
+        ip_address: The IP address the load-balancer uses (optional)
+        '''
+        _validate_not_none('service_name', service_name)
+        _validate_not_none('deployment_name', deployment_name)
+        return self._perform_post(
+            self._get_loadbalancers_operations_path(
+                service_name, deployment_name),
+            _XmlSerializer.add_load_balancer_operation_to_xml(role_names, post_action),
+            async=True)
+
     #--Operations for virtual machine images -----------------------------
     def list_os_images(self):
         '''
@@ -1845,6 +1862,10 @@ class ServiceManagementService(_ServiceManagementClient):
     def _get_roles_operations_path(self, service_name, deployment_name):
         return self._get_path('services/hostedservices/' + _str(service_name) +
                               '/deployments', deployment_name) + '/roles/Operations'
+
+    def _get_loadbalancers_operations_path(self, service_name, deployment_name):
+        return self._get_path('services/hostedservices/' + _str(service_name) +
+                              '/deployments', deployment_name) + '/loadbalancers'
 
     def _get_data_disk_path(self, service_name, deployment_name, role_name,
                             lun=None):

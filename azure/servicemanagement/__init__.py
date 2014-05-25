@@ -33,7 +33,7 @@ AZURE_MANAGEMENT_CERTFILE = 'AZURE_MANAGEMENT_CERTFILE'
 AZURE_MANAGEMENT_SUBSCRIPTIONID = 'AZURE_MANAGEMENT_SUBSCRIPTIONID'
 
 # x-ms-version for service management.
-X_MS_VERSION = '2014-04-01'
+X_MS_VERSION = '2014-05-01'
 
 #-----------------------------------------------------------------------------
 # Data classes
@@ -588,6 +588,12 @@ class ConfigurationSet(WindowsAzureData):
         self.input_endpoints = ConfigurationSetInputEndpoints()
         self.subnet_names = _scalar_list_of(str, 'SubnetName')
         self.static_virtual_network_ip_address = u''
+#        self.public_ips = PublicIPs()
+
+
+class PublicIPs(WindowsAzureData):
+    def __init__(self):
+        self.public_ip = _scalar_list_of(str, 'Name')
 
 
 class ConfigurationSetInputEndpoints(WindowsAzureData):
@@ -1332,6 +1338,16 @@ class _XmlSerializer(object):
         for role_name in role_names:
             xml += '<Name>' + role_name + '</Name>'
         return _XmlSerializer.doc_from_data(
+            'LoadBalancer',
+            [('OperationType', 'StartRolesOperation'),
+            ('Roles', xml)])
+
+    @staticmethod
+    def add_load_balancer_operation_to_xml(subnet_name, ip_address):
+        xml = ''
+        for role_name in role_names:
+            xml += '<Name>' + role_name + '</Name>'
+        return _XmlSerializer.doc_from_data(
             'StartRolesOperation',
             [('OperationType', 'StartRolesOperation'),
             ('Roles', xml)])
@@ -1438,7 +1454,7 @@ class _XmlSerializer(object):
                   _lower)])
 
             if endpoint.endpoint_acl and endpoint.endpoint_acl.rules:
-                xml += '<EndpointACL><Rules>'
+                xml += '<EndpointAcl><Rules>'
 		for rule in endpoint.endpoint_acl.rules:
                     xml += '<Rule>'
                     xml += _XmlSerializer.data_to_xml(
@@ -1447,7 +1463,7 @@ class _XmlSerializer(object):
                          ('RemoteSubnet', rule.remote_subnet),
                          ('Description', rule.description)])
                     xml += '</Rule>'
-                xml += '</Rules></EndpointACL>'
+                xml += '</Rules></EndpointAcl>'
             xml += '</InputEndpoint>'
         xml += '</InputEndpoints>'
         xml += '<SubnetNames>'
@@ -1458,6 +1474,10 @@ class _XmlSerializer(object):
             xml += '<StaticVirtualNetworkIPAddress>'
             xml += configuration.static_virtual_network_ip_address
             xml += '</StaticVirtualNetworkIPAddress>'
+#	if configuration.public_ip:
+#            xml += '<PublicIPs><PublicIP>'
+#            xml += configuration.public_ip
+#            xml += '</PublicIP></PublicIPs>'
         return xml
 
     @staticmethod
